@@ -24,12 +24,11 @@ $head = function (iterable $collection) {
 };
 
 $tail = function (iterable $collection): iterable {
-    $head = false;
-    foreach ($collection as $item) {
-        if ($head) {
-            yield $item;
-        }
-        $head = true;
+    foreach ($collection as $i => $item) {
+        match ($i) {
+            0 => null,
+            default => yield $item,
+        };
     }
 };
 
@@ -41,9 +40,30 @@ $multiply = fn(iterable $collection) => $reduce(fn($carry, $item) => $item * $ca
 
 $count = fn(iterable $collection): int => $fold(fn($carry, $item): int => $carry + 1, 0)($collection);
 
+$take = fn(int $size) => function (iterable $collection) use ($size) {
+    foreach ($collection as $i => $item) {
+        match ($i < $size) {
+            false => null,
+            true => yield $item,
+        };
+    }
+};
+
 $map = fn(callable $f): callable => function (iterable $collection) use ($f): iterable {
     foreach ($collection as $item) {
         yield $f($item);
+    }
+};
+
+$flatMap = fn(callable $f): callable => function (iterable $collection) use ($f): iterable {
+    foreach ($collection as $item) {
+        yield from $f($item);
+    }
+};
+
+$flatten = function (iterable $collection): iterable {
+    foreach ($collection as $item) {
+        yield from $item;
     }
 };
 
