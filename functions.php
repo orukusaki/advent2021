@@ -1,5 +1,6 @@
 <?php
-function pipe($value) {
+function pipe($value)
+{
     return match (is_callable($value)) {
         true => fn(callable $fn = null) => match ($fn) {
             null => $value(),
@@ -9,18 +10,13 @@ function pipe($value) {
     };
 }
 
-$fold = function(callable $f, mixed $carry = null, iterable $collection = null) {
-    $inner = function(iterable $collection) use ($f, $carry) {
-        foreach ($collection as $item) {
-            $carry = $f($carry, $item);
-        };
-        return $carry;
+$fold = fn(callable $f, mixed $carry = null) => function (iterable $collection) use ($f, $carry) {
+    foreach ($collection as $item) {
+        $carry = $f($carry, $item);
     };
-    return match ($collection) {
-        null => $inner,
-        default => $inner($collection),
-    };
+    return $carry;
 };
+
 
 $head = function (iterable $collection) {
     foreach ($collection as $item) {
@@ -38,38 +34,29 @@ $tail = function (iterable $collection): iterable {
     }
 };
 
-$reduce = fn(iterable $collection, callable $f) => $fold($f, $head($collection), $tail($collection));
+$reduce = fn(iterable $collection, callable $f) => $fold($f, $head($collection))($tail($collection));
 
 $sum = fn(iterable $collection) => $reduce(
     $collection,
-    fn ($carry, $item) => $item + $carry
+    fn($carry, $item) => $item + $carry
 );
 
-$count = fn(iterable $collection) => $fold(
-    fn($carry, $item) => $carry + 1,
-    0,
-    $collection,
-);
+$count = fn(iterable $collection) => $fold(fn($carry, $item): int => $carry + 1, 0)($collection);
 
-$map = function(callable $f, iterable $collection = null)  {
-    $inner = function(iterable $collection) use ($f): iterable {
-        foreach ($collection as $item) {
-            yield $f($item);
-        }
-    };
-    return match ($collection) {
-        null => $inner,
-        default => $inner($collection),
-    };
+$map = fn(callable $f) => function (iterable $collection) use ($f): iterable {
+    foreach ($collection as $item) {
+        yield $f($item);
+    }
 };
 
-$filter = function(callable $predicate = null, iterable $collection = null) {
+
+$filter = function (callable $predicate = null) {
     $predicate = match ($predicate) {
-        null => fn ($i) => $i !== null,
+        null => fn($i) => $i !== null,
         default => $predicate,
     };
 
-    $inner = function(iterable $collection) use ($predicate) {
+    return function (iterable $collection) use ($predicate) {
         foreach ($collection as $item) {
             match ($predicate($item)) {
                 true => yield $item,
@@ -77,34 +64,24 @@ $filter = function(callable $predicate = null, iterable $collection = null) {
             };
         }
     };
-    return match ($collection) {
-        null => $inner,
-        default => $inner($collection),
-    };
 };
 
-$window = function (int $size, iterable $collection = null) {
+$window = fn(int $size, iterable $collection = null) => function (iterable $collection) use ($size) {
+    $buf = array_fill(0, $size, 0);
 
-    $inner = function (iterable $collection) use ($size) {
-        $buf = array_fill(0, $size, 0);
+    foreach ($collection as $i => $item) {
 
-        foreach ($collection as $i => $item) {
-
-            for ($j = 0; $j < $size - 1; $j++) {
-                $buf[$j] = $buf[$j + 1];
-            }
-
-            $buf[$j] = $item;
-
-            match ($i < $size - 1) {
-                true, => null,
-                false => yield $buf,
-            };
+        for ($j = 0; $j < $size - 1; $j++) {
+            $buf[$j] = $buf[$j + 1];
         }
-    };
-    return match ($collection) {
-        null => $inner,
-        default => $inner($collection),
-    };
+
+        $buf[$j] = $item;
+
+        match ($i < $size - 1) {
+            true, => null,
+            false => yield $buf,
+        };
+    }
 };
+
 
