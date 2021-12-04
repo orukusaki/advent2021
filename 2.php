@@ -1,6 +1,6 @@
 <?php
 
-require '../advent2021/functions.php';
+require 'functions.php';
 
 $parse = fn ($row) => explode(' ', $row);
 

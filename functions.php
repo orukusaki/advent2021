@@ -83,8 +83,17 @@ $filter = function (callable $predicate = null): callable {
     };
 };
 
+$slice = fn(int $start, int $size) => function (iterable $collection) use ($start, $size) {
+    foreach ($collection as $i => $item) {
+        match (($i >= $start) && ($i < ($start + $size))) {
+            true => yield $item,
+            false => null,
+        };
+    }
+};
+
 $window = fn(int $size): callable => function (iterable $collection) use ($size): iterable {
-    $buf = array_fill(0, $size, 0);
+    $buf = array_fill(0, $size, null);
 
     foreach ($collection as $i => $item) {
 
@@ -101,4 +110,27 @@ $window = fn(int $size): callable => function (iterable $collection) use ($size)
     }
 };
 
+$collect = function (iterable $collection): array {
+    $array = [];
+    foreach ($collection as $item) {
+        $array[] = $item;
+    }
 
+    return $array;
+};
+
+$repeat = function (callable $f, int $n) use (&$repeat): callable {
+    return fn ($input) => match ($n) {
+        0 => $input,
+        default => $f($n, $repeat($f, $n - 1)($input)),
+    };
+};
+
+$pivot = function (iterable $collection) use ($collect): iterable {
+    $data = $collect($collection);
+    for ($i = 0; $i < count($data[0]); $i++) {
+        yield array_column($data, $i);
+    }
+};
+
+$peak = fn (callable $f): callable => function ($x) use ($f) {$f($x); return $x;};
