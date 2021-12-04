@@ -10,7 +10,7 @@ $toNumber = $reduce(fn($carry, $item) => ($carry<<1) + $item);
     ($pivot)                               // Gives us an array per column (bit position)
     ($map($sum))                           // Sum up the bits in each column
     ($map(fn($x) => (int)($x > 500)))      // 1 in every position that is more 1s
-    ($toNumber)
+    ($toNumber)                            // 'gamma'
     (fn($x) => [$x, (~$x & 0xFFF)])        // Create the inverse (epsilon rate)
     ($multiply)
     ();
@@ -28,36 +28,35 @@ $countValuesAtPosition = fn(int $pos) => fn(iterable $collection) => pipe($colle
 
 $mostCommonAtPosition = fn(int $pos) => fn(iterable $collection) => pipe($collection)
     ($countValuesAtPosition($pos))
-    (fn($x) => array_key_last($x))
+    ('array_key_last')
     ();
 
 $leastCommonAtPosition = fn(int $pos) => fn(iterable $collection) => pipe($collection)
     ($countValuesAtPosition($pos))
-    (fn($x) => array_key_first($x))
+    ('array_key_first')
     ();
 
-$filterBy = fn($f) => fn(int $position, iterable $collection) => pipe($collection)
+$filterBy = fn(callable $f) => fn(int $position, iterable $collection) => pipe($collection)
     ($collect)
     (fn($x) => [$f($position - 1)($x), $x])
     (fn($x) => $filterByPosition($position - 1, $x[0])($x[1]))
-();
+    ();
 
-$oxygen = pipe(file('data/3.txt'))
-    ($map('trim'))
-    ($map('str_split'))
-    ($repeat($filterBy($mostCommonAtPosition), 12))
+$getNumberUsingFilter = fn(callable $f) => fn(iterable $collection): int => pipe($collection)
+    ($repeat($filterBy($f), 12))
     ($head)
     ($toNumber)
     ();
 
-$co2 = pipe(file('data/3.txt'))
+$oxygen = $getNumberUsingFilter($mostCommonAtPosition);
+$co2 = $getNumberUsingFilter($leastCommonAtPosition);
+
+echo pipe(file('data/3.txt'))
     ($map('trim'))
     ($map('str_split'))
-    ($repeat($filterBy($leastCommonAtPosition), 12))
-    ($head)
-    ($toNumber)
+    ($collect)
+    ($fork([$oxygen, $co2]))
+    ($multiply)
     ();
-
-echo $oxygen * $co2;
 
 echo PHP_EOL;

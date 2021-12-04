@@ -134,3 +134,9 @@ $pivot = function (iterable $collection) use ($collect): iterable {
 };
 
 $peak = fn (callable $f): callable => function ($x) use ($f) {$f($x); return $x;};
+
+$fork = fn(array $functions) => function ($data) use ($functions) {
+    foreach ($functions as $f) {
+        yield $f($data);
+    }
+};
